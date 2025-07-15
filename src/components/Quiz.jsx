@@ -28,7 +28,8 @@ function Quiz({ db, userId, appId, isAuthReady }) {
       question: "Which of these is something humans are generally better at than AI?",
       options: ["Recognizing patterns", "Performing repetitive tasks", "Empathy", "Processing large datasets quickly"],
       answer: "Empathy"
-    }
+    },
+    
   ];
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
