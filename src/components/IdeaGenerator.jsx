@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 function IdeaGenerator() {
   const [userKeyword, setUserKeyword] = useState('');
   const [aiIdea, setAiIdea] = useState('Your AI idea will appear here!');
   const [isLoadingIdea, setIsLoadingIdea] = useState(false);
 
-  // Placeholder for the Gemini API key (Canvas will inject it at runtime)
-  const apiKey = "";
+  // Get the Gemini API key from environment variables
+  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
   /**
    * Generates an AI idea using the Gemini API.
    */
   const generateAIIdea = async () => {
+    // Validate API key
+    if (!apiKey) {
+      setAiIdea("Google API key not configured. Please check your environment variables.");
+      return;
+    }
+
     if (!userKeyword.trim()) {
       setAiIdea("Please enter a keyword to generate an idea!");
       return;
@@ -28,7 +35,10 @@ function IdeaGenerator() {
     const payload = {
       contents: chatHistory,
       generationConfig: {
-        model: "gemini-2.0-flash"
+        temperature: 0.9,
+        topK: 1,
+        topP: 1,
+        maxOutputTokens: 2048,
       }
     };
 
@@ -41,7 +51,16 @@ function IdeaGenerator() {
         body: JSON.stringify(payload)
       });
 
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
       const result = await response.json();
+
+      // Check for API errors
+      if (result.error) {
+        throw new Error(`API Error: ${result.error.message || 'Unknown error'}`);
+      }
 
       if (result.candidates && result.candidates.length > 0 &&
         result.candidates[0].content && result.candidates[0].content.parts &&
@@ -85,7 +104,7 @@ function IdeaGenerator() {
           {isLoadingIdea ? (
             <div className="loading-spinner"></div>
           ) : (
-            aiIdea
+            <ReactMarkdown>{aiIdea}</ReactMarkdown>
           )}
         </div>
       </div>
