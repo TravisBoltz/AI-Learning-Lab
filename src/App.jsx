@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
+// import { initializeApp } from 'firebase/app';
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import './App.css';
@@ -14,30 +16,67 @@ function App() {
   const [userId, setUserId] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
-  // Firebase setup
+  // Firebase configuration from environment variables
   const firebaseConfig = {
-    apiKey: "AIzaSyDvnmK8XUg-M1hkIGHOFgPJf_VwBNQYYoY",
-    authDomain: "ai-camp-canvas.firebaseapp.com",
-    projectId: "ai-camp-canvas",
-    storageBucket: "ai-camp-canvas.appspot.com",
-    messagingSenderId: "1046689531453",
-    appId: "1:1046689531453:web:d4d8c8e7e2a22a3f2b7e2f"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
+  // Validate Firebase configuration
+  const validateFirebaseConfig = () => {
+    const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+    const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
+    
+    if (missingKeys.length > 0) {
+      console.error('Missing Firebase configuration keys:', missingKeys);
+      return false;
+    }
+    return true;
+  };
+
+  // Initialize Firebase only if configuration is valid
+  let app, analytics, db, auth;
   const appId = "ai-camp-canvas"; // Used for Firestore collection paths
+
+  if (validateFirebaseConfig()) {
+    try {
+      app = initializeApp(firebaseConfig);
+      analytics = getAnalytics(app);
+      db = getFirestore(app);
+      auth = getAuth(app);
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+    }
+  }
 
   // Firebase authentication setup
   useEffect(() => {
     const setupAuth = async () => {
+      if (!auth) {
+        console.error('Firebase auth not initialized. Please check your Firebase configuration.');
+        setIsAuthReady(true);
+        return;
+      }
+
       try {
         const userCredential = await signInAnonymously(auth);
         setUserId(userCredential.user.uid);
         setIsAuthReady(true);
+        console.log('Anonymous authentication successful');
       } catch (error) {
         console.error("Error signing in anonymously:", error);
+        
+        if (error.code === 'auth/configuration-not-found') {
+          console.error('Firebase Authentication is not enabled. Please enable it in your Firebase console.');
+        } else if (error.code === 'auth/api-key-not-valid') {
+          console.error('Invalid Firebase API key. Please check your configuration.');
+        }
+        
         setIsAuthReady(true); // Mark auth as ready even if failed
       }
     };
