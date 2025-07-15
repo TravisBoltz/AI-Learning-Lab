@@ -7,12 +7,13 @@ import { getFirestore } from 'firebase/firestore';
 import './App.css';
 
 // Import components
+import AIOrNotQuiz from './components/AIOrNotQuiz';
 import WordScramble from './components/WordScramble';
 import Quiz from './components/Quiz';
 import IdeaGenerator from './components/IdeaGenerator';
 
 function App() {
-  const [activeComponent, setActiveComponent] = useState('icebreaker'); // Default to icebreaker
+  const [activeComponent, setActiveComponent] = useState('aiOrNot'); // Default to AI or Not quiz
   const [userId, setUserId] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -91,6 +92,12 @@ function App() {
           <h1 className="text-2xl font-bold text-blue-400 mb-4 md:mb-0">AI Learning Lab</h1>
           <div className="flex flex-wrap justify-center space-x-2 space-y-2 md:space-y-0">
             <button
+              onClick={() => setActiveComponent('aiOrNot')}
+              className={`px-4 py-2 rounded-md ${activeComponent === 'aiOrNot' ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
+            >
+              🤖 AI or Not?
+            </button>
+            <button
               onClick={() => setActiveComponent('icebreaker')}
               className={`px-4 py-2 rounded-md ${activeComponent === 'icebreaker' ? 'bg-purple-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
             >
@@ -112,11 +119,17 @@ function App() {
         </div>
       </nav>
 
-      <main className="container mx-auto p-4">
-        {activeComponent === 'icebreaker' && <WordScramble />}
-        {activeComponent === 'quiz' && <Quiz db={db} userId={userId} appId={appId} isAuthReady={isAuthReady} />}
-        {activeComponent === 'ideaGenerator' && <IdeaGenerator />}
-      </main>
+      {/* AI or Not Quiz has its own full-screen layout */}
+      {activeComponent === 'aiOrNot' && <AIOrNotQuiz />}
+      
+      {/* Other components use the container layout */}
+      {activeComponent !== 'aiOrNot' && (
+        <main className="container mx-auto p-4">
+          {activeComponent === 'icebreaker' && <WordScramble />}
+          {activeComponent === 'quiz' && <Quiz db={db} userId={userId} appId={appId} isAuthReady={isAuthReady} />}
+          {activeComponent === 'ideaGenerator' && <IdeaGenerator />}
+        </main>
+      )}
     </div>
   );
 }
