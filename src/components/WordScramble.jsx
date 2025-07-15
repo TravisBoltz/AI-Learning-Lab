@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 function WordScramble() {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -22,11 +23,13 @@ function WordScramble() {
     { original: "LANGUAGE", scrambled: "GEGNALAU" },
     { original: "INTELLIGENCE", scrambled: "GENCELINTELI" },
     { original: "AUTOMATION", scrambled: "NOITAMOTUA" },
-    { original: "PREDICT", scrambled: "TCDIERP" }
+    { original: "PREDICT", scrambled: "TCDIERP" },
+    { original: "COMPUTER", scrambled: "RETCOMPU" },
+    { original: "ARTIFICIAL", scrambled: "LCAIFITRA" },
   ];
 
-  // Placeholder for the Gemini API key (Canvas will inject it at runtime)
-  const apiKey = "";
+  // Get the Gemini API key from environment variables
+  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
   /**
    * Shuffles the characters of a string.
@@ -156,6 +159,13 @@ function WordScramble() {
    * Explains the current word using the Gemini API.
    */
   const explainWord = async () => {
+    // Validate API key
+    if (!apiKey) {
+      setExplanation("Google API key not configured. Please check your environment variables.");
+      setIsLoadingExplanation(false);
+      return;
+    }
+
     const wordToExplain = words[currentWordIndex].original;
     setIsLoadingExplanation(true);
     setExplanation(''); // Clear previous explanation
@@ -168,7 +178,10 @@ function WordScramble() {
     const payload = {
       contents: chatHistory,
       generationConfig: {
-        model: "gemini-2.0-flash"
+        temperature: 0.7,
+        topK: 1,
+        topP: 1,
+        maxOutputTokens: 2048,
       }
     };
 
@@ -181,7 +194,16 @@ function WordScramble() {
         body: JSON.stringify(payload)
       });
 
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
       const result = await response.json();
+
+      // Check for API errors
+      if (result.error) {
+        throw new Error(`API Error: ${result.error.message || 'Unknown error'}`);
+      }
 
       if (result.candidates && result.candidates.length > 0 &&
         result.candidates[0].content && result.candidates[0].content.parts &&
@@ -241,20 +263,20 @@ function WordScramble() {
                 <>
                   <button
                     onClick={checkGuess}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   >
                     Check!
                   </button>
                   <button
                     onClick={getHint}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                    className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2"
                     disabled={hintsUsed >= 3}
                   >
                     Hint ({3 - hintsUsed} left)
                   </button>
                   <button
                     onClick={skipWord}
-                    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                    className="bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2"
                   >
                     Skip
                   </button>
@@ -263,7 +285,7 @@ function WordScramble() {
               {isCorrect && currentWordIndex < words.length && (
                 <button
                   onClick={nextWord}
-                  className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2"
                 >
                   Next Word
                 </button>
@@ -284,7 +306,7 @@ function WordScramble() {
               {isLoadingExplanation ? (
                 <div className="loading-spinner"></div>
               ) : (
-                explanation
+                <ReactMarkdown>{explanation}</ReactMarkdown>
               )}
             </div>
           </>
